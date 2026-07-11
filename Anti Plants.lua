@@ -1,0 +1,53 @@
+--// Hide Plants + Remove Plant Effects (Auto Execute)
+
+local Gardens = workspace:WaitForChild("Gardens")
+
+local function optimizePlant(plant)
+    -- Hide all parts
+    for _, obj in ipairs(plant:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            obj.LocalTransparencyModifier = 1
+        elseif obj:IsA("Decal") or obj:IsA("Texture") then
+            obj.Transparency = 1
+        elseif obj:IsA("ParticleEmitter")
+            or obj:IsA("Trail")
+            or obj:IsA("Beam")
+            or obj:IsA("Smoke")
+            or obj:IsA("Fire")
+            or obj:IsA("Sparkles") then
+            obj.Enabled = false
+        end
+    end
+
+    -- Destroy locally for better FPS
+    pcall(function()
+        plant:Destroy()
+    end)
+end
+
+local function setupPlot(plot)
+    local plants = plot:FindFirstChild("Plants")
+    if not plants then return end
+
+    -- Existing plants
+    for _, plant in ipairs(plants:GetChildren()) do
+        optimizePlant(plant)
+    end
+
+    -- Future plants
+    plants.ChildAdded:Connect(function(plant)
+        task.wait()
+        optimizePlant(plant)
+    end)
+end
+
+-- Existing plots
+for _, plot in ipairs(Gardens:GetChildren()) do
+    setupPlot(plot)
+end
+
+-- Future plots
+Gardens.ChildAdded:Connect(function(plot)
+    task.wait()
+    setupPlot(plot)
+end)
