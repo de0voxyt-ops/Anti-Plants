@@ -1,122 +1,53 @@
-local Workspace = game:GetService("Workspace")
+--// Hide Plants + Remove Plant Effects (Auto Execute)
 
-local function destroy(inst)
-    if inst then
-        pcall(function()
-            inst:Destroy()
-        end)
-    end
-end
+local Gardens = workspace:WaitForChild("Gardens")
 
--- =========================
--- Gardens (Delete Forever)
--- =========================
-
-local Gardens = Workspace:FindFirstChild("Gardens")
-
-if Gardens then
-    local function wipePlot(plot)
-        destroy(plot)
-    end
-
-    for _, plot in ipairs(Gardens:GetChildren()) do
-        wipePlot(plot)
-    end
-
-    Gardens.ChildAdded:Connect(wipePlot)
-
-    task.spawn(function()
-        while Gardens.Parent do
-            task.wait(0.1)
-            for _, plot in ipairs(Gardens:GetChildren()) do
-                wipePlot(plot)
-            end
+local function optimizePlant(plant)
+    -- Hide all parts
+    for _, obj in ipairs(plant:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            obj.LocalTransparencyModifier = 1
+        elseif obj:IsA("Decal") or obj:IsA("Texture") then
+            obj.Transparency = 1
+        elseif obj:IsA("ParticleEmitter")
+            or obj:IsA("Trail")
+            or obj:IsA("Beam")
+            or obj:IsA("Smoke")
+            or obj:IsA("Fire")
+            or obj:IsA("Sparkles") then
+            obj.Enabled = false
         end
+    end
+
+    -- Destroy locally for better FPS
+    pcall(function()
+        plant:Destroy()
     end)
 end
 
--- =========================
--- Map Cleanup
--- =========================
+local function setupPlot(plot)
+    local plants = plot:FindFirstChild("Plants")
+    if not plants then return end
 
-local Map = Workspace:FindFirstChild("Map")
+    -- Existing plants
+    for _, plant in ipairs(plants:GetChildren()) do
+        optimizePlant(plant)
+    end
 
-if Map then
-    destroy(Map:FindFirstChild("Middle"))
-    destroy(Map:FindFirstChild("Stands"))
-    destroy(Map:FindFirstChild("SafeZones"))
+    -- Future plants
+    plants.ChildAdded:Connect(function(plant)
+        task.wait()
+        optimizePlant(plant)
+    end)
 end
 
--- =========================
--- NPCs
--- =========================
-destroy(Workspace:FindFirstChild("AuctionStand"))
-destroy(Workspace:FindFirstChild("ExplorerStand"))
-destroy(Workspace:FindFirstChild("NPCS"))
-
--- =========================
--- Visual Folders
--- =========================
-
-for _, name in ipairs({
-    "BirdVisuals",
-    "Birds",
-    "BlizzardBeams",
-    "DroppedItems",
-    "Fences",
-    "LightingEffects",
-    "GnomeVisuals",
-}) do
-    destroy(Workspace:FindFirstChild(name))
-    if Map then
-        destroy(Map:FindFirstChild(name))
-    end
+-- Existing plots
+for _, plot in ipairs(Gardens:GetChildren()) do
+    setupPlot(plot)
 end
 
--- =========================
--- Destroy ALL Visual Effects
--- =========================
-
-local visualClasses = {
-    ParticleEmitter = true,
-    Trail = true,
-    Beam = true,
-    Smoke = true,
-    Fire = true,
-    Sparkles = true,
-    Highlight = true,
-    SelectionBox = true,
-    BoxHandleAdornment = true,
-    SphereHandleAdornment = true,
-    PointLight = true,
-    SpotLight = true,
-    SurfaceLight = true,
-    Explosion = true,
-}
-
-task.spawn(function()
-    while true do
-        for _, obj in ipairs(game:GetDescendants()) do
-            if visualClasses[obj.ClassName] then
-                destroy(obj)
-            end
-        end
-        task.wait(1)
-    end
-end)
-
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
-task.spawn(function()
-    while true do
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character then
-                pcall(function()
-                    player.Character:Destroy()
-                end)
-            end
-        end
-        task.wait(0.2)
-    end
+-- Future plots
+Gardens.ChildAdded:Connect(function(plot)
+    task.wait()
+    setupPlot(plot)
 end)
